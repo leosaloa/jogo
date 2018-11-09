@@ -1,0 +1,195 @@
+﻿<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>Nave</title>
+</head>
+
+<body>
+    <canvas id="meu_canvas" width="1280" height="900"></canvas>
+    <script>
+        x = 400;
+        y = 400;
+        pontos = 0;
+        explodirI = false;
+        naveExibir = true;
+        gameOver = false;
+        coluna = 0;
+        linha = 0;
+        balas = new Array();
+        iy = -128;
+        ix = Math.random() * 1140;
+        ivel = 6 - Math.random() * 4;
+        quadro = 0;
+        function Fundo() {
+            var fundo = new Image();
+            fundo.src = 'img/universo.jpg';
+            fundo.onload = function () {
+                ctx.drawImage(fundo, 0, 0, 1280, 900);
+            }
+        }
+        function Nave() {
+            if(naveExibir==true){
+                var nave = new Image();
+                nave.src = 'img/cerveja.png';
+                nave.onload = function () {
+                    ctx.drawImage(nave, x, y, 128, 128);
+                }
+            }
+        }
+        function Inimigo() {
+            var inimigo = new Image();
+            inimigo.src = 'img/inimigo2.png';
+            inimigo.onload = function () {
+                ctx.drawImage(inimigo, ix, iy, 128, 128);
+            }
+            iy += ivel;
+            if (iy > 900) {
+                iy = -128;
+                ix = Math.random() * 1140;
+                ivel = 6 - Math.random() * 4;
+            }
+            if(iy>680 && iy < 720){
+                if(ix > x-64 && ix < x+64){
+                    explodirI = true;
+                    ex = x+20;
+                    ey = 720;
+                    naveExibir = false;
+                    somExplodir.play();
+                    somExplodir.currentTime = 0,5;
+                }
+            }
+        }
+        function Explodir(explode) {
+            if (explode == true) {
+                var explosao = new Image();
+                explosao.src = 'img/explosao.png';
+                largura = 200;
+                altura = 200;
+                eex = 189 * coluna;
+                eey = 189 * linha;
+                explosao.onload = function () {
+                    ctx.drawImage(explosao, eex, eey,
+                        largura, altura, ex, ey,
+                        largura * 0.5, altura * 0.5
+                    );
+                }
+                if(quadro < 6){
+                    quadro++;
+                } else {
+                    quadro = 0;
+                    coluna++;
+                }
+                if (linha == 0 && coluna == 5) {
+                    linha = 1;
+                    coluna = 0;
+                } else if (coluna > 1 && linha == 1) {
+                    coluna = 0;
+                    linha = 0;
+                    explodirI = false;
+                    if(naveExibir==false)
+                        gameOver=true;
+                }
+                
+            }
+        }
+        function Tiro() {
+            this.xt = x;
+            this.yt = y;
+            this.mover = function () {
+                ctx.fillStyle = "#ffffff";
+                ctx.fillRect(this.xt + 60, this.yt, 10, 30);
+                this.yt -= 3 * decorrido / 10;
+                if (this.yt < 3) {
+                    this.yt = 700;
+                    balas.splice(0,1);
+                }
+                if(this.xt>ix-64 && this.xt<ix+64){
+                    if(this.yt>iy && this.yt<iy+64){
+                        somExplodir.play();
+                        somExplodir.currentTime = 0,5;
+                        explodirI = true;
+                        ex = ix;
+                        ey = iy;
+                        this.yt = 400;
+                        balas.splice(0, 1);
+                        iy = -128;
+                        ix = Math.random() * 1140;
+                        ivel = 6 - Math.random() * 4;
+                        pontos++;
+                    }
+                }
+            }
+        }
+
+        function GameOver(){         
+            if(gameOver==true){
+                var fundo = new Image();
+                fundo.src = 'img/gameOver2.png';
+                fundo.onload = function () {
+                ctx.drawImage(fundo, 170, 170, 800, 500);
+                }                
+                explodirI = false;
+            }           
+        }
+        function fullscreen(){
+           if(canvas.webkitRequestFullScreen) {
+            canvas.webkitRequestFullScreen();
+           }
+          else {
+            canvas.mozRequestFullScreen();
+          }            
+        }
+        function Desenhar() {
+            agora = new Date().getTime();
+            decorrido = agora - anterior;
+            ctx.font = "30px Verdana";
+            Fundo();
+            Nave();
+            Inimigo();
+            GameOver();
+            Explodir(explodirI);
+            for (var c = 0; c < balas.length; c++)
+                balas[c].mover();
+            ctx.fillText("Pontos: "+pontos,60,100);
+            anterior = agora;
+            requestAnimationFrame(Desenhar);
+        }
+        var canvas = document.getElementById("meu_canvas");
+        canvas.addEventListener("click",fullscreen);
+        var ctx = canvas.getContext("2d");
+        anterior = new Date().getTime();
+        somTiro = new Audio('sons/Tiro.mp3');
+        somExplodir = new Audio('sons/explosao.mp3');
+        somFundo = new Audio('sons/fundo.mp3').play();
+        somFim = new Audio('sons/fim.mp3').play();
+        requestAnimationFrame(Desenhar);
+        document.addEventListener('keydown', function (evento) {
+            if (evento.keyCode == 37 && x > 0) {
+                //seta para Esquerda
+                x -= 20;
+            }
+            if (evento.keyCode == 39 && x < 1160) {
+                //seta para Direita
+                x += 20;
+            }
+            if (evento.keyCode == 38 && y > 0) {
+                //seta para Cima
+                y -= 20;
+            }
+            if (evento.keyCode == 40 && y < 700) {
+                //seta para Baixo
+                y += 20;
+            }
+            if (evento.keyCode == 32) {
+                //barra de espaco
+                balas[balas.length] = new Tiro();
+                somTiro.currentTime = 5-Math.random()*0.5;
+                somTiro.play();
+            }
+        });
+    </script>
+</body>
+
+</html>
